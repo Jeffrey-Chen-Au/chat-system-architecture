@@ -15,130 +15,50 @@ The system was originally implemented as a **single Firebase project** and later
 
 ---
 
-## 🧠 Key Design Highlights
+## 🧠 Key Highlights
 
-### 🔹 Multi-Tenant Architecture
-
-The system is structured into three layers:
-
-- **Core (Control Plane)**
-  - authentication
-  - tenant registry
-  - membership management
-  - unified inbox
-  - cross-company messaging
-
-- **Tenant Projects (Data Plane)**
-  - isolated chat data per company
-  - users, channels, messages
-
-- **Bridge Layer**
-  - enables cross-company communication
-  - managed centrally in Core
+- Multi-tenant architecture (Core + Tenant + Bridge)
+- Unified inbox indexing system
+- Scope-based routing across multiple Firebase projects
+- Backend-controlled consistency (Cloud Functions)
+- Incremental migration strategy (no full rewrite)
 
 ---
 
-### 🔹 Unified Inbox System
+## 📚 Documentation
 
-A centralized inbox index is maintained in Core:
-
-```bash
-/coreUserInboxes/{uid}/items
-```
-
-This enables:
-- a single query for channel list (O(1) read pattern)
-- consistent unread state managed centrally
-- a unified experience across multiple tenants
-
-👉 Without this, the client would need to query multiple Firebase projects and merge results manually, leading to:
-- complex client logic  
-- inconsistent sorting and unread counts  
-- increased network overhead  
-
-👉 This design keeps the frontend decoupled from the number of tenants, allowing the system to scale without increasing client complexity.
+- [Architecture](./docs/architecture.md)
+- [Firebase Backend](./docs/firebase-backend.md)
+- [Frontend](./docs/frontend.md)
+- [Personal Engineering Summary](./docs/personal-summary.md)
 
 ---
 
-### 🔹 Scope-Based Routing (Frontend)
+## ⚙️ Tech Stack
 
-The frontend introduces a scope abstraction:
+**Frontend**
+- React Native (Expo)
+- Expo Router
 
-```bash
-{ kind: "core" }
-{ kind: "tenant", tenantId }
-```
-This allows the application to:
+**Backend**
+- Firebase Auth
+- Firestore
+- Cloud Functions
 
-dynamically route reads and writes to the correct Firebase project
-support multi-tenant data isolation without duplicating logic
-keep the frontend architecture clean and scalable
+---
 
-👉 Trade-off:
+## ⚠️ Disclaimer
 
-adds complexity in initialization and tenant lifecycle management
-requires careful handling of authentication across multiple Firebase apps
-🔹 Backend-Orchestrated Consistency
+This repository contains **architecture and design documentation only**.
 
-Cloud Functions are used to:
+- No proprietary company code is included  
+- No sensitive data is exposed  
 
-discover tenant access
-mint tenant auth tokens
-maintain inbox index
-update unread counts
+---
 
-👉 Ensures consistency and avoids client-side race conditions
-
-👉 Inbox-based routing allowed switching data sources without UI changes
-
-📚 Documentation
-
-Detailed design documents:
-
-Architecture
-Firebase Backend
-Frontend
-
-⚙️ Tech Stack
-
-Frontend:
-React Native (Expo)
-Expo Router
-
-Backend:
-Firebase Authentication
-Firestore
-Cloud Functions
-
-Other:
-Expo Notifications
-Firebase Analytics
-
-🎯 What This Demonstrates
-
-This repository highlights:
-
-multi-tenant system design
-control-plane vs data-plane separation
-real-time messaging architecture
-data indexing strategies
-frontend-backend coordination
-safe production migration approach
-
-⚠️ Disclaimer
-
-This repository contains architecture and design documentation only.
-
-No proprietary company code is included
-No sensitive data or credentials are exposed
-Implementation details are generalized
-
-👤 About Me
+## 👤 Author
 
 Mobile engineer with experience building:
-
-real-time chat systems
-multi-tenant architectures
-React Native + Firebase applications
-
----
+- real-time chat systems  
+- multi-tenant architectures  
+- React Native + Firebase apps  
