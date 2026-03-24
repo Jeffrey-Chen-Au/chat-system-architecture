@@ -41,29 +41,43 @@ The system is structured into three layers:
 ### 🔹 Unified Inbox System
 
 A centralized inbox index is maintained in Core:
+
+```bash
 /coreUserInboxes/{uid}/items
+```
 
 This enables:
-- a single query for channel list
-- consistent unread state
-- unified experience across tenants
+- a single query for channel list (O(1) read pattern)
+- consistent unread state managed centrally
+- a unified experience across multiple tenants
 
-👉 Eliminates the need for client-side multi-database queries
+👉 Without this, the client would need to query multiple Firebase projects and merge results manually, leading to:
+- complex client logic  
+- inconsistent sorting and unread counts  
+- increased network overhead  
+
+👉 This design keeps the frontend decoupled from the number of tenants, allowing the system to scale without increasing client complexity.
 
 ---
 
 ### 🔹 Scope-Based Routing (Frontend)
 
-The frontend uses a scope abstraction:
+The frontend introduces a scope abstraction:
 
-```ts
+```bash
 { kind: "core" }
 { kind: "tenant", tenantId }
-This allows:
+```
+This allows the application to:
 
-dynamic Firebase project selection
-clean separation of logic
-scalable multi-tenant support
+dynamically route reads and writes to the correct Firebase project
+support multi-tenant data isolation without duplicating logic
+keep the frontend architecture clean and scalable
+
+👉 Trade-off:
+
+adds complexity in initialization and tenant lifecycle management
+requires careful handling of authentication across multiple Firebase apps
 🔹 Backend-Orchestrated Consistency
 
 Cloud Functions are used to:
@@ -75,16 +89,6 @@ update unread counts
 
 👉 Ensures consistency and avoids client-side race conditions
 
-🔹 Incremental Migration Strategy
-
-The system was migrated without a full rewrite:
-
-introduced routing abstraction first
-added tenant projects
-built unified inbox
-migrated data in phases
-performed safe cutover
-
 👉 Inbox-based routing allowed switching data sources without UI changes
 
 📚 Documentation
@@ -94,24 +98,22 @@ Detailed design documents:
 Architecture
 Firebase Backend
 Frontend
-Personal Engineering Summary
+
 ⚙️ Tech Stack
 
-Frontend
-
+Frontend:
 React Native (Expo)
 Expo Router
 
-Backend
-
+Backend:
 Firebase Authentication
 Firestore
 Cloud Functions
 
-Other
-
+Other:
 Expo Notifications
 Firebase Analytics
+
 🎯 What This Demonstrates
 
 This repository highlights:
@@ -122,6 +124,7 @@ real-time messaging architecture
 data indexing strategies
 frontend-backend coordination
 safe production migration approach
+
 ⚠️ Disclaimer
 
 This repository contains architecture and design documentation only.
@@ -129,6 +132,7 @@ This repository contains architecture and design documentation only.
 No proprietary company code is included
 No sensitive data or credentials are exposed
 Implementation details are generalized
+
 👤 About Me
 
 Mobile engineer with experience building:
@@ -136,3 +140,5 @@ Mobile engineer with experience building:
 real-time chat systems
 multi-tenant architectures
 React Native + Firebase applications
+
+---
