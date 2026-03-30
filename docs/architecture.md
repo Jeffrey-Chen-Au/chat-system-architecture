@@ -94,12 +94,14 @@ Bridge lives in Core and enables **cross-company communication**.
 
 ### 3.4 Legacy Support
 
-Exiting users remains in Core during migration.
+Existing users remains in Core during migration.
 
 - treated as a tenant logically  
 - stored as legacy data technically
 
-sourceType = “legacyCore”
+```text
+sourceType = "legacyCore"
+```
 ---
 
 ## 4. Final Target Architecture
@@ -107,24 +109,32 @@ sourceType = “legacyCore”
 ### 4.1 Core Project
 
 #### Core Collections
+```text
 /users/{uid}
 /coreTenants/{tenantId}
 /coreMemberships/{uid}
 /coreUserInboxes/{uid}/items/{itemId}
+```
 #### Bridge Collections
+```text
 /bridgeChannels/{channelId}
 /bridgeMessages/{channelId}/items/{messageId}
+```
 #### Legacy Chat (Temporary)
+```text
 /channels/{channelId}
 /channels/{channelId}/messages/{messageId}
+```
 ---
 
 ### 4.2 Tenant Projects
 
 Each tenant stores internal chat data:
+```text
 /channels/{channelId}
 /channels/{channelId}/members/{uid}
 /channels/{channelId}/messages/{messageId}
+```
 👉 Provides strict project-level isolation
 
 ---
@@ -203,7 +213,9 @@ The system introduces **scope-based routing**.
 ## 7. Unified Inbox Strategy
 
 Instead of querying multiple databases:
+```text
 /coreUserInboxes/{uid}/items/{itemId}
+```
 
 ---
 
