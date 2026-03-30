@@ -17,9 +17,7 @@ This document defines how the live chat system evolves from a **single Firebase 
 - Firestore schema definitions  
 - frontend/UI behavior  
 
----
-
-## Related Documents
+### Related Documents
 
 For implementation details, refer to:
 
@@ -105,8 +103,6 @@ sourceType = “legacyCore”
 ---
 
 ## 4. Final Target Architecture
-
----
 
 ### 4.1 Core Project
 
