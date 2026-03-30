@@ -1,34 +1,372 @@
-# Architecture
-
-## Overview
-
-The system evolves from a **single Firebase project** into a **multi-tenant architecture**.
+# GChat — Multi-Tenant Internal Chat System Architecture
 
 ---
 
-## Core Design
+## 1. Purpose
 
-### Core (Control Plane)
-- authentication
-- tenant registry
-- membership
-- unified inbox
-- bridge messaging
+This document defines how the GChat system evolves from a **single Firebase project** into a **multi-tenant architecture**.
 
----
+### Focus
 
-### Tenant (Data Plane)
-Each company has its own Firebase project:
-- users
-- channels
-- messages
+- system structure  
+- tenant isolation model  
+- cross-company communication  
+- authentication and routing logic  
 
----
+### Out of Scope
 
-### Bridge
-- cross-company communication
-- managed in Core
+- detailed backend implementation  
+- Firestore schema definitions  
+- frontend/UI behavior  
 
 ---
 
-## Unified Inbox
+## Related Documents
+
+For implementation details, refer to:
+
+- GChat Firebase Backend (Firestore + Cloud Functions)  
+- GChat Frontend (screens, flows, UX)
+
+---
+
+## 2. Background
+
+The current system runs in production using a **single Firebase project**.
+
+This works for one company, but has limitations:
+
+- all chat data lives in one project  
+- no proper tenant isolation  
+- scaling to multiple companies becomes complex  
+- cross-company communication lacks clear boundaries  
+- onboarding new tenants is risky  
+
+👉 Goal: evolve without a full rewrite  
+
+---
+
+## 3. Core Design
+
+The system adopts a:
+
+👉 **Core + Tenant + Bridge architecture**
+
+---
+
+### 3.1 Core Project (Control Plane)
+
+Core acts as the **central authority**.
+
+#### Responsibilities
+
+- global identity (Firebase Auth)  
+- tenant registry  
+- membership management  
+- unified inbox index  
+- cross-company messaging (Bridge)  
+- tenant token minting  
+
+---
+
+### 3.2 Tenant Projects (Data Plane)
+
+Each company runs in its own Firebase project.
+
+#### Responsibilities
+
+- internal users  
+- internal channels  
+- internal messages  
+- tenant-local presence and storage  
+
+👉 Key property: **full isolation between tenants**
+
+---
+
+### 3.3 Bridge Layer
+
+Bridge lives in Core and enables **cross-company communication**.
+
+#### Responsibilities
+
+- bridge channels  
+- bridge messages  
+- cross-tenant membership enforcement  
+
+---
+
+### 3.4 Legacy Support (Gaura)
+
+Gaura Travel remains in Core during migration.
+
+- treated as a tenant logically  
+- stored as legacy data technically
+
+sourceType = “legacyCore”
+---
+
+## 4. Final Target Architecture
+
+---
+
+### 4.1 Core Project
+
+Example:
+gaura-travel-porto-live
+#### Core Collections
+/users/{uid}
+/coreTenants/{tenantId}
+/coreMemberships/{uid}
+/coreUserInboxes/{uid}/items/{itemId}
+#### Bridge Collections
+/bridgeChannels/{channelId}
+/bridgeMessages/{channelId}/items/{messageId}
+#### Legacy Chat (Temporary)
+#### Legacy Chat (Temporary)
+/channels/{channelId}
+/channels/{channelId}/messages/{messageId}
+---
+
+### 4.2 Tenant Projects
+
+Example:
+gchat-flylanka-live
+Each tenant stores internal chat data:
+/channels/{channelId}
+/channels/{channelId}/members/{uid}
+/channels/{channelId}/messages/{messageId}
+👉 Provides strict project-level isolation
+
+---
+
+### 4.3 Special Case: Gaura Travel
+
+Gaura is:
+
+- a tenant in business logic  
+- a legacy data source technically  
+
+In inbox:
+sourceType = “legacyCore”
+---
+
+## 5. Authentication and Access Model
+
+### Core-first Authentication
+
+Users always authenticate via Core.
+
+---
+
+### Flow
+
+1. User signs into Core  
+2. Read `/coreMemberships/{uid}`  
+3. Read `/coreTenants/{tenantId}`  
+4. Check `dataHome`  
+
+---
+
+### Routing
+
+#### If `dataHome = "core"`
+
+- no tenant token  
+- stay in Core  
+
+#### If `dataHome = "project"`
+
+- call `mintTenantToken(tenantId)`  
+- Core validates membership  
+- Core mints custom token  
+- client signs into tenant  
+
+---
+
+👉 Centralized identity + isolated data
+
+---
+
+## 6. Tenant Routing Model
+
+The system introduces **scope-based routing**.
+
+### Scope
+
+- `core`
+- `tenant(tenantId)`
+
+---
+
+### Rule
+
+| Data Type | Scope |
+|----------|------|
+| Core collections | Core |
+| Bridge data | Core |
+| Tenant data | Tenant |
+
+---
+
+👉 Enables dynamic multi-project routing without duplicating logic
+
+---
+
+## 7. Unified Inbox Strategy
+
+Instead of querying multiple databases:
+/coreUserInboxes/{uid}/items/{itemId}
+---
+
+### Why
+
+Avoid:
+
+- multiple listeners  
+- sorting issues  
+- unread inconsistencies  
+- pagination complexity  
+
+---
+
+### Inbox Contains
+
+- sourceType  
+- tenantId  
+- channelId  
+- title  
+- photoURL  
+- lastMessage  
+- lastMessageAt  
+- unreadCount  
+- lastReadAt  
+- updatedAt  
+- pinned / muted  
+
+---
+
+### Routing Behavior
+
+| sourceType | Action |
+|----------|--------|
+| bridge | open Core |
+| tenant | open tenant |
+| legacyCore | open Core |
+
+---
+
+👉 Inbox = **single source of truth for UI**
+
+---
+
+## 8. Internal Tenant Workflows
+
+---
+
+### 8.1 Gaura (dataHome = "core")
+
+- user stays in Core  
+- reads/writes legacy chat  
+- inbox updated in Core  
+
+---
+
+### 8.2 Fly Lanka (dataHome = "project")
+
+- user signs into Core  
+- tenant token minted  
+- user signs into tenant  
+- reads/writes tenant data  
+- inbox updated in Core  
+
+---
+
+## 9. Backend / Cloud Function Responsibilities
+
+Core backend handles:
+
+- tenant discovery  
+- token minting  
+- inbox indexing  
+- unread updates  
+- migration tooling  
+
+---
+
+### Why Backend is Required
+
+Without backend:
+
+- inconsistent inbox  
+- race conditions  
+- duplicated logic  
+- security risks  
+
+---
+
+👉 Backend ensures system consistency
+
+---
+
+## 10. Why Cloud Functions Are Required
+
+If client handled everything:
+
+- unread would break  
+- ordering becomes inconsistent  
+- security issues  
+- duplicated logic across platforms  
+
+---
+
+### Cloud Functions centralize:
+
+- authorization  
+- tenant auth  
+- inbox updates  
+- metadata generation  
+- migration tooling  
+
+---
+
+👉 Required for system correctness, not optional
+
+---
+
+## 11. Cross-Company Communication
+
+Handled via **Bridge layer in Core**.
+
+---
+
+### Rules
+
+- no direct tenant-to-tenant access  
+- all shared chat lives in Core  
+
+---
+
+### Benefits
+
+- strong tenant isolation  
+- explicit shared layer  
+- simpler security model  
+
+---
+
+## 12. Summary
+
+This architecture:
+
+- separates control plane and data plane  
+- keeps identity centralized  
+- isolates tenant data  
+- enables cross-company communication  
+- supports safe incremental migration  
+
+---
+
+👉 Key idea:
+
+**Inbox controls routing**
