@@ -11,7 +11,7 @@ This document defines how the live chat system evolves from a **single Firebase 
 - system structure  
 - tenant isolation model  
 - cross-company communication  
-- authentication and routing logic  
+- authentication and routing logic
 
 ### Out of Scope
 
@@ -137,11 +137,11 @@ Each tenant stores internal chat data:
 
 ### 4.3 Special Case: existing users
 
-- a tenant in business logic  
-- a legacy data source technically  
+- behaves as tenant in business logic  
+- stored as legacy source in Core 
 
-In inbox:
 sourceType = “legacyCore”
+
 ---
 
 ## 5. Authentication and Access Model
@@ -165,8 +165,8 @@ Users always authenticate via Core.
 
 #### If `dataHome = "core"`
 
-- no tenant token  
 - stay in Core  
+- no tenant token  
 
 #### If `dataHome = "project"`
 
@@ -177,7 +177,7 @@ Users always authenticate via Core.
 
 ---
 
-👉 Centralized identity + isolated data
+👉 Centralized identity with tenant isolation
 
 ---
 
@@ -210,16 +210,18 @@ The system introduces **scope-based routing**.
 
 Instead of querying multiple databases:
 /coreUserInboxes/{uid}/items/{itemId}
+
 ---
 
 ### Why
 
-Avoid:
+Without this:
 
-- multiple listeners  
-- sorting issues  
-- unread inconsistencies  
-- pagination complexity  
+- client must query multiple Firebase projects  
+- sorting becomes inconsistent  
+- unread counts break  
+- pagination becomes complex  
+- UI logic becomes brittle 
 
 ---
 
@@ -229,13 +231,10 @@ Avoid:
 - tenantId  
 - channelId  
 - title  
-- photoURL  
 - lastMessage  
-- lastMessageAt  
 - unreadCount  
 - lastReadAt  
 - updatedAt  
-- pinned / muted  
 
 ---
 
@@ -249,13 +248,11 @@ Avoid:
 
 ---
 
-👉 Inbox = **single source of truth for UI**
+👉 Inbox = **single source of truth for channel list**
 
 ---
 
 ## 8. Internal Tenant Workflows
-
----
 
 ### 8.1 dataHome = "core"
 
@@ -275,7 +272,7 @@ Avoid:
 
 ---
 
-## 9. Backend / Cloud Function Responsibilities
+## 9. Backend Responsibilities
 
 Core backend handles:
 
@@ -291,10 +288,10 @@ Core backend handles:
 
 Without backend:
 
-- inconsistent inbox  
 - race conditions  
+- inconsistent unread  
 - duplicated logic  
-- security risks  
+- security risks   
 
 ---
 
@@ -309,8 +306,8 @@ If client handled everything:
 - unread would break  
 - ordering becomes inconsistent  
 - security issues  
-- duplicated logic across platforms
-- notifications
+- duplicated logic  
+- notification inconsistencies  
 
 ---
 
@@ -320,11 +317,10 @@ If client handled everything:
 - tenant auth  
 - inbox updates  
 - metadata generation  
-- migration tooling  
 
 ---
 
-👉 Required for system correctness, not optional
+👉 Required for system correctness
 
 ---
 
@@ -345,7 +341,7 @@ Handled via **Bridge layer in Core**.
 
 - strong tenant isolation  
 - explicit shared layer  
-- simpler security model  
+- simpler security 
 
 ---
 
