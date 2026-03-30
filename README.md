@@ -17,8 +17,8 @@ The system was originally implemented as a **single Firebase project** and later
 
 ## 🧠 Key Highlights
 
-- Multi-tenant architecture (Core + Tenant + Bridge)
-- Unified inbox indexing system
+- multi-tenant architecture to support multiple companies while maintaining data isolation and a consistent user experience.
+- Unified inbox indexing system (single-query channel list across tenants, avoids multi-database queries)
 - Scope-based routing across multiple Firebase projects
 - Backend-controlled consistency (Cloud Functions)
 - Incremental migration strategy (no full rewrite)
