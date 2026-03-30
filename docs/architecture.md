@@ -1,10 +1,10 @@
-# GChat — Multi-Tenant Internal Chat System Architecture
+# Live Chat — Multi-Tenant Internal Chat System Architecture
 
 ---
 
 ## 1. Purpose
 
-This document defines how the GChat system evolves from a **single Firebase project** into a **multi-tenant architecture**.
+This document defines how the live chat system evolves from a **single Firebase project** into a **multi-tenant architecture**.
 
 ### Focus
 
@@ -25,8 +25,8 @@ This document defines how the GChat system evolves from a **single Firebase proj
 
 For implementation details, refer to:
 
-- GChat Firebase Backend (Firestore + Cloud Functions)  
-- GChat Frontend (screens, flows, UX)
+- Firebase Backend (Firestore + Cloud Functions)  
+- Frontend (screens, flows, UX)
 
 ---
 
@@ -96,9 +96,9 @@ Bridge lives in Core and enables **cross-company communication**.
 
 ---
 
-### 3.4 Legacy Support (Gaura)
+### 3.4 Legacy Support
 
-Gaura Travel remains in Core during migration.
+Exiting users remains in Core during migration.
 
 - treated as a tenant logically  
 - stored as legacy data technically
@@ -112,8 +112,6 @@ sourceType = “legacyCore”
 
 ### 4.1 Core Project
 
-Example:
-gaura-travel-porto-live
 #### Core Collections
 /users/{uid}
 /coreTenants/{tenantId}
@@ -123,15 +121,12 @@ gaura-travel-porto-live
 /bridgeChannels/{channelId}
 /bridgeMessages/{channelId}/items/{messageId}
 #### Legacy Chat (Temporary)
-#### Legacy Chat (Temporary)
 /channels/{channelId}
 /channels/{channelId}/messages/{messageId}
 ---
 
 ### 4.2 Tenant Projects
 
-Example:
-gchat-flylanka-live
 Each tenant stores internal chat data:
 /channels/{channelId}
 /channels/{channelId}/members/{uid}
@@ -140,9 +135,7 @@ Each tenant stores internal chat data:
 
 ---
 
-### 4.3 Special Case: Gaura Travel
-
-Gaura is:
+### 4.3 Special Case: existing users
 
 - a tenant in business logic  
 - a legacy data source technically  
@@ -264,7 +257,7 @@ Avoid:
 
 ---
 
-### 8.1 Gaura (dataHome = "core")
+### 8.1 dataHome = "core"
 
 - user stays in Core  
 - reads/writes legacy chat  
@@ -272,7 +265,7 @@ Avoid:
 
 ---
 
-### 8.2 Fly Lanka (dataHome = "project")
+### 8.2 dataHome = "project"
 
 - user signs into Core  
 - tenant token minted  
@@ -316,7 +309,8 @@ If client handled everything:
 - unread would break  
 - ordering becomes inconsistent  
 - security issues  
-- duplicated logic across platforms  
+- duplicated logic across platforms
+- notifications
 
 ---
 
