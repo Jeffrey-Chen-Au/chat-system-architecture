@@ -1,7 +1,5 @@
 # Live Chat — Multi-Tenant Internal Chat System Architecture
 
----
-
 ## 1. Purpose
 
 This document defines how the live chat system evolves from a **single Firebase project** into a **multi-tenant architecture**.
