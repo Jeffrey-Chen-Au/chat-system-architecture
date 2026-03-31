@@ -48,8 +48,6 @@ The system adopts a:
 
 👉 **Core + Tenant + Bridge architecture**
 
----
-
 ### 3.1 Core Project (Control Plane)
 
 Core acts as the **central authority**.
@@ -179,8 +177,6 @@ Users always authenticate via Core.
 - Core mints custom token  
 - client signs into tenant  
 
----
-
 👉 Centralized identity with tenant isolation
 
 ---
@@ -204,8 +200,6 @@ The system introduces **scope-based routing**.
 | Bridge data | Core |
 | Tenant data | Tenant |
 
----
-
 👉 Enables dynamic multi-project routing without duplicating logic
 
 ---
@@ -216,9 +210,6 @@ Instead of querying multiple databases:
 ```text
 /coreUserInboxes/{uid}/items/{itemId}
 ```
-
----
-
 ### Why
 
 Without this:
@@ -251,8 +242,6 @@ Without this:
 | bridge | open Core |
 | tenant | open tenant |
 | legacyCore | open Core |
-
----
 
 👉 Inbox = **single source of truth for channel list**
 
@@ -301,8 +290,6 @@ Without backend:
 - duplicated logic  
 - security risks   
 
----
-
 👉 Backend ensures system consistency
 
 ---
@@ -325,8 +312,6 @@ If client handled everything:
 - tenant auth  
 - inbox updates  
 - metadata generation  
-
----
 
 👉 Required for system correctness
 
@@ -365,28 +350,110 @@ This architecture:
 
 ---
 
-## 13. Consistency Model
+## 13. Data Model Overview
 
-The system follows an **eventual consistency model** between Tenant data and Core inbox index.
+The system separates data into three logical domains:
 
-### Write Flow
+- **Core** → identity, memberships, tenant registry, unified inbox  
+- **Tenant** → internal company chat data  
+- **Bridge** → cross-company shared chat data  
 
-1. Message is written to Tenant (or Core for bridge)
-2. Cloud Function triggers:
-   - updates Core inbox item
-   - updates lastMessage / timestamps
-   - updates unread counts
+---
 
-### Guarantees
+## 🏗️ Diagram (Conceptual)
 
-- Tenant data is the **source of truth**
-- Core inbox is a **derived index**
-- Temporary inconsistencies are tolerated
+```
+Users
+  ↓
+Core Memberships
+  ↓
+Core Tenants
 
-### Failure Handling
+Core Memberships → Inbox Index
 
-- Inbox can be rebuilt from message history if needed
-- Background jobs or manual triggers can re-sync inbox state
+Inbox Index → Bridge Channels → Bridge Messages
+Inbox Index → Tenant Channels → Tenant Members → Tenant Messages
+```
+
+---
+
+## 📊 Collection Mapping
+
+### Core Project
+
+- Users  
+  `/users/{uid}`  
+
+- Memberships  
+  `/coreMemberships/{uid}`  
+
+- Tenants  
+  `/coreTenants/{tenantId}`  
+
+- Inbox (Unified Index)  
+  `/coreUserInboxes/{uid}/items/{itemId}`  
+
+---
+
+### Bridge Layer (in Core)
+
+- Bridge Channels  
+  `/bridgeChannels/{channelId}`  
+
+- Bridge Messages  
+  `/bridgeMessages/{channelId}/items/{messageId}`  
+
+---
+
+### Tenant Projects
+
+- Channels  
+  `/channels/{channelId}`  
+
+- Channel Members  
+  `/channels/{channelId}/members/{uid}`  
+
+- Messages  
+  `/channels/{channelId}/messages/{messageId}`  
+
+---
+
+## 🔗 Relationship Summary
+
+- `users` defines global identity  
+- `coreMemberships` defines tenant access  
+- `coreTenants` stores tenant metadata and routing config  
+- `coreUserInboxes` acts as unified channel index  
+- `bridgeChannels` enables cross-company communication  
+- tenant collections store isolated company data  
+
+---
+
+## 🧠 Design Note
+
+The inbox is a **derived index layer**, not the source of truth.
+
+- Messages live in **Tenant** or **Bridge**
+- Inbox exists for:
+  - fast channel listing  
+  - unread tracking  
+  - routing  
+
+---
+
+## ⚠️ Important Principle
+
+- **Source of truth = message storage (Tenant / Bridge)**  
+- **Inbox = derived state (can be rebuilt)**  
+
+---
+
+## 🚀 Why This Design
+
+- avoids querying multiple Firebase projects  
+- enables O(1) channel list query  
+- simplifies frontend logic  
+- supports multi-tenant scalability  
 
 ---
 
