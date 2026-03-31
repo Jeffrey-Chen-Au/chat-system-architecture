@@ -1,8 +1,10 @@
-# Live CHat — Firebase Backend Architecture
+# Live Chat — Firebase Backend Architecture
+
+---
 
 ## 1. Overview
 
-This document describes the Firebase backend architecture used by Live Chat App.
+This document describes the Firebase backend architecture used by the Live Chat app.
 
 ### Focus
 
@@ -65,332 +67,347 @@ Used for:
 /channels/{channelId}   (legacy Core data)
 ```
 
-⸻
+---
 
-Tenant Firestore (Data Plane)
+### Tenant Firestore (Data Plane)
 
 Each tenant project stores its own internal chat data.
 
-Collections
+#### Collections
+
 ```text
 /channels/{channelId}
 /channels/{channelId}/members/{uid}
 /channels/{channelId}/messages/{messageId}
 ```
+
 👉 Each tenant is isolated at the project level
 
-⸻
+---
 
-2.3 Core Collections
+### 2.3 Core Collections
 
-⸻
-
-coreTenants/{tenantId}
+#### `coreTenants/{tenantId}`
 
 Stores tenant configuration:
-	•	displayName
-	•	status
-	•	dataHome
-	•	clientConfig
+
+- displayName  
+- status  
+- dataHome  
+- clientConfig  
 
 Used to determine:
-	•	where tenant data lives (Core vs tenant project)
-	•	whether tenant authentication is required
 
-⸻
+- where tenant data lives (Core vs tenant project)  
+- whether tenant authentication is required  
 
-coreMemberships/{uid}
+---
+
+#### `coreMemberships/{uid}`
 
 Stores user-to-tenant relationships:
-	•	tenantIds
-	•	rolesByTenant
-	•	defaultTenantId
+
+- tenantIds  
+- rolesByTenant  
+- defaultTenantId  
 
 Used for:
-	•	access control
-	•	tenant discovery
-	•	token minting validation
 
-⸻
+- access control  
+- tenant discovery  
+- token minting validation  
 
-coreUserInboxes/{uid}/items/{itemId}
+---
 
-This is the unified inbox index.
+#### `coreUserInboxes/{uid}/items/{itemId}`
+
+This is the **unified inbox index**.
 
 Each item contains:
-	•	sourceType (tenant | bridge | legacyCore)
-	•	tenantId
-	•	channelId
-	•	title
-	•	photoURL
-	•	lastMessage
-	•	lastMessageAt
-	•	lastMessageSenderId
-	•	unreadCount
-	•	lastReadAt
-	•	updatedAt
-	•	optional pinned / muted
 
-⸻
+- sourceType (`tenant | bridge | legacyCore`)  
+- tenantId  
+- channelId  
+- title  
+- photoURL  
+- lastMessage  
+- lastMessageAt  
+- lastMessageSenderId  
+- unreadCount  
+- lastReadAt  
+- updatedAt  
+- optional pinned / muted  
 
-Why Inbox Exists
+### Why Inbox Exists
 
 Without this:
-	•	client must query multiple databases
-	•	sorting becomes inconsistent
-	•	unread state becomes unreliable
 
-👉 Inbox acts as the single source of truth for channel list UI
+- client must query multiple Firebase projects  
+- sorting becomes inconsistent  
+- unread state becomes unreliable  
 
-⸻
+👉 Inbox acts as the **single source of truth for channel list UI**
 
-Inbox ID Strategy
+### Inbox ID Strategy
+
 ```text
 tenant_${tenantId}_${channelId}
 legacy_${tenantId}_${channelId}
 bridge_core_${channelId}
 ```
+
 This enables stable routing across:
-	•	tenant
-	•	legacy Core
-	•	bridge
 
-⸻
+- tenant  
+- legacy Core  
+- bridge  
 
-Bridge Data
+### Bridge Data
 
 Stored in Core:
+
 ```text
 /bridgeChannels/{channelId}
 /bridgeMessages/{channelId}/items/{messageId}
 ```
+
 Used for:
-	•	cross-company communication
-	•	shared channels across tenants
 
-⸻
+- cross-company communication  
+- shared channels across tenants  
 
-2.4 Tenant Collections
+---
 
-⸻
+### 2.4 Tenant Collections
 
-channels/{channelId}
-
-Stores:
-	•	type (dm | group)
-	•	memberIds
-	•	name / photo
-	•	dmKey (for uniqueness)
-	•	lastMessage metadata
-	•	createdAt
-
-⸻
-
-channels/{channelId}/members/{uid}
+#### `channels/{channelId}`
 
 Stores:
-	•	unread count
-	•	joinedAt
-	•	lastReadAt
 
-⸻
+- type (`dm | group`)  
+- memberIds  
+- name / photo  
+- dmKey (for uniqueness)  
+- lastMessage metadata  
+- createdAt  
 
-channels/{channelId}/messages/{messageId}
+---
+
+#### `channels/{channelId}/members/{uid}`
 
 Stores:
-	•	senderId
-	•	text / attachments
-	•	audio metadata
-	•	createdAt
-	•	edit/delete state
-	•	push delivery summary
 
-⸻
+- unread count  
+- joinedAt  
+- lastReadAt  
 
-2.5 Source of Truth vs Derived Data
+---
 
-Source of Truth
-	•	messages
-	•	channels
-	•	membership
-	•	user profiles
-	•	tenant registry
+#### `channels/{channelId}/messages/{messageId}`
 
-⸻
+Stores:
 
-Derived / Indexed Data
-	•	coreUserInboxes
-	•	unread counters
-	•	last message preview
+- senderId  
+- text / attachments  
+- audio metadata  
+- createdAt  
+- edit/delete state  
+- push delivery summary  
 
-⸻
+---
+
+### 2.5 Source of Truth vs Derived Data
+
+#### Source of Truth
+
+- messages  
+- channels  
+- membership  
+- user profiles  
+- tenant registry  
+
+#### Derived / Indexed Data
+
+- coreUserInboxes  
+- unread counters  
+- last message preview  
 
 👉 Inbox is a denormalized index maintained by backend logic
 
-⸻
+---
 
-3. Cloud Functions
+## 3. Cloud Functions
 
-⸻
-
-3.1 Overview
+### 3.1 Overview
 
 Cloud Functions act as the backend orchestration layer.
 
 They handle:
-	•	tenant discovery
-	•	tenant token minting
-	•	inbox indexing and unread updates
-	•	membership resolution
-	•	migration tooling
-	•	media processing
 
-⸻
+- tenant discovery  
+- tenant token minting  
+- inbox indexing and unread updates  
+- membership resolution  
+- migration tooling  
+- media processing  
 
-3.2 Tenant Access
+---
 
-⸻
+### 3.2 Tenant Access
 
-getMyTenants
-	•	Type: callable
-	•	Runs in: Core
+#### `getMyTenants`
 
-Reads:
+- Type: callable  
+- Runs in: Core  
+
+**Reads:**
+
 ```text
 /coreMemberships/{uid}
 /coreTenants/{tenantId}
 ```
-Returns:
-	•	tenantIds
-	•	roles
-	•	default tenant
-	•	tenant configs
 
-⸻
+**Returns:**
 
-mintTenantToken(tenantId)
-	•	Type: callable
-	•	Runs in: Core
+- tenantIds  
+- roles  
+- default tenant  
+- tenant configs  
 
-Responsibilities:
-	•	validate membership
-	•	initialize tenant Admin SDK
-	•	mint custom token
+---
 
-Claims:
-	•	tenantId
-	•	role
-	•	isBridgeUser
+#### `mintTenantToken(tenantId)`
+
+- Type: callable  
+- Runs in: Core  
+
+**Responsibilities:**
+
+- validate membership  
+- initialize tenant Admin SDK  
+- mint custom token  
+
+**Claims:**
+
+- tenantId  
+- role  
+- isBridgeUser  
 
 👉 Enables secure cross-project authentication
 
-⸻
+---
 
-3.3 Inbox Indexing
+### 3.3 Inbox Indexing
 
-⸻
+#### `upsertDmInbox`
 
-upsertDmInbox
-	•	creates/updates DM inbox entries for both users
+- creates/updates DM inbox entries for both users  
 
-⸻
+---
 
-upsertGroupInbox
-	•	creates/updates group inbox entries for all members
+#### `upsertGroupInbox`
 
-⸻
+- creates/updates group inbox entries for all members  
 
-updateCoreInboxAfterSend
+---
 
-Updates:
-	•	lastMessage
-	•	timestamps
-	•	unread counts
+#### `updateCoreInboxAfterSend`
 
-Fan-out logic:
-	•	sender → unread = 0
-	•	others → increment unread
+**Updates:**
 
-⸻
+- lastMessage  
+- timestamps  
+- unread counts  
 
-markInboxItemRead
+**Fan-out logic:**
 
-Updates:
-	•	unreadCount = 0
-	•	lastReadAt
+- sender → unread = 0  
+- others → increment unread  
 
-⸻
+---
+
+#### `markInboxItemRead`
+
+**Updates:**
+
+- unreadCount = 0  
+- lastReadAt  
 
 👉 These functions make the Core inbox authoritative
 
-⸻
+---
 
-3.4 Member Resolution
+### 3.4 Member Resolution
 
-⸻
+#### `getChannelMembersWithProfiles`
 
-getChannelMembersWithProfiles
-	•	merges membership + user profile
-	•	uses Core user data as source of truth
+- merges membership + user profile  
+- uses Core user data as source of truth  
 
-⸻
+---
 
-3.5 Media Processing
+### 3.5 Media Processing
 
-⸻
+#### `transcodeWebmToM4a`
 
-transcodeWebmToM4a
-	•	Type: storage trigger
+- Type: storage trigger  
 
-Flow:
-	1.	upload .webm
-	2.	transcode → .m4a
-	3.	upload converted file
-	4.	delete original
-	5.	update Firestore message
+**Flow:**
 
-Fields updated:
-	•	attachmentURL
-	•	audioMime
-	•	audioStoragePath
+1. upload `.webm`  
+2. transcode → `.m4a`  
+3. upload converted file  
+4. delete original  
+5. update Firestore message  
 
-⸻
+**Fields updated:**
 
-4. Core Design Principles
+- attachmentURL  
+- audioMime  
+- audioStoragePath  
 
-⸻
+---
 
-4.1 Core as Control Plane
+## 4. Core Design Principles
+
+### 4.1 Core as Control Plane
 
 Core manages:
-	•	identity
-	•	tenant access
-	•	routing
-	•	inbox index
 
-⸻
+- identity  
+- tenant access  
+- routing  
+- inbox index  
 
-4.2 Tenant as Data Plane
+---
+
+### 4.2 Tenant as Data Plane
 
 Tenants store:
-	•	actual chat data
 
-⸻
+- actual chat data  
 
-4.3 Inbox as Index
+---
+
+### 4.3 Inbox as Index
 
 Inbox:
-	•	replaces multi-query client logic
-	•	centralizes unread state
-	•	enables cross-project routing
 
-⸻
+- replaces multi-query client logic  
+- centralizes unread state  
+- enables cross-project routing  
 
-4.4 Function-Orchestrated Consistency
+---
+
+### 4.4 Function-Orchestrated Consistency
 
 Cloud Functions:
-	•	enforce correctness
-	•	reduce client complexity
-	•	prevent race conditions
 
-⸻
+- enforce correctness  
+- reduce client complexity  
+- prevent race conditions  
+
+---
+
+👉 Backend logic ensures system reliability and consistency
+
