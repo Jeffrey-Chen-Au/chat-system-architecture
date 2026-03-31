@@ -9,7 +9,7 @@ This document describes the Firebase backend architecture used by the Live Chat 
 - Firestore data model  
 - Core vs Tenant separation  
 - Cloud Functions responsibilities  
-- multi-tenant coordination  
+- Multi-tenant coordination
 
 ### Out of Scope
 
@@ -144,7 +144,7 @@ Without this:
 - sorting becomes inconsistent  
 - unread state becomes unreliable  
 
-👉 Inbox acts as the **single source of truth for channel list UI**
+👉 Inbox acts as the **single source of truth for channel list UI**, while underlying message data remains authoritative.
 
 ### Inbox ID Strategy
 
@@ -195,9 +195,10 @@ Stores:
 
 Stores:
 
-- unread count  
+- membership state  
 - joinedAt  
-- lastReadAt  
+- role / permissions  
+- optional read metadata
 
 ---
 
@@ -331,7 +332,7 @@ They handle:
 - unreadCount = 0  
 - lastReadAt  
 
-👉 These functions make the Core inbox authoritative
+👉 These functions maintain the Core inbox as a derived, consistent index
 
 ---
 
@@ -405,7 +406,150 @@ Cloud Functions:
 - reduce client complexity  
 - prevent race conditions  
 
+👉 Backend logic enforces system correctness and consistency guarantees
+
 ---
 
-👉 Backend logic ensures system reliability and consistency
+## 5. Message Event Flow
 
+### Send Message Flow
+
+1. Client writes message to:
+   - Tenant Firestore (or Core for bridge)
+
+2. Firestore trigger activates Cloud Function
+
+3. Backend performs:
+
+   - resolve channel members  
+   - update Core inbox for each member  
+   - increment unread counts  
+   - update lastMessage metadata  
+
+4. Optional:
+   - trigger push notifications  
+   - update delivery metadata  
+
+### Result
+
+- message is stored in authoritative location  
+- inbox index is updated asynchronously  
+- unread state is updated consistently  
+
+👉 Derived state is maintained via backend-triggered updates
+
+### Read Message Flow
+
+1. Client sends read acknowledgement
+2. Backend (or trusted write) updates Core inbox item:
+   - unreadCount = 0
+   - lastReadAt = latest message timestamp
+3. Optional:
+   - update read receipts if supported
+
+### Result
+
+- unread state is cleared
+- read position is updated centrally
+- all devices observe consistent state
+  
+---
+
+## 6. Consistency Model
+
+The backend enforces an **eventual consistency model**.
+
+### Rules
+
+- Message storage is authoritative  
+- Inbox and unread counts are derived  
+- Backend owns all state transitions  
+
+### Behavior
+
+- message writes happen first  
+- Cloud Functions update derived state asynchronously  
+- temporary inconsistencies are acceptable  
+
+### Recovery
+
+- inbox can be rebuilt from message history  
+- unread can be recalculated using read cursor
+
+### Multi-Device Consistency
+
+- read state is stored centrally in Core inbox
+- updates from any device affect all sessions
+- ensures consistent unread counts across devices
+  
+---
+
+## 7. Idempotency and Safety
+
+Cloud Functions are designed to be idempotent.
+
+### Examples
+
+- inbox updates use controlled increments and guarded writes  
+- read operations safely reset unread to 0  
+- repeated triggers do not result in duplicated state transitions  
+
+### Why
+
+- Firestore triggers may execute more than once  
+- network retries can duplicate events  
+
+👉 Backend must tolerate duplicate execution safely
+
+---
+
+## 8. Failure Handling
+
+The backend is designed to tolerate partial failures.
+
+### Scenarios
+
+#### Inbox update fails
+- message still exists (source of truth)
+- inbox may become stale
+- can be repaired via backfill or re-sync
+
+#### Function delay
+- unread may lag temporarily
+- system converges over time
+
+#### Token mint failure
+- tenant access fails gracefully
+- client retries authentication
+
+👉 System prioritizes data durability over immediate consistency
+
+---
+
+## 9. Security Model
+
+The backend enforces all critical validations.
+
+### Rules
+
+- client cannot mint tenant tokens directly  
+- client cannot modify unread counts arbitrarily  
+- membership must be validated server-side  
+
+### Enforcement
+
+- all sensitive operations go through Cloud Functions  
+- Firestore rules restrict direct client writes  
+
+👉 Backend is the source of truth for permissions and access control
+
+---
+
+## 10. Ordering Model
+
+- message ordering is based on `createdAt` timestamps in message storage  
+- inbox ordering uses `lastMessageAt`  
+- minor inconsistencies may occur due to async updates  
+- ordering converges as backend updates complete  
+
+👉 System prioritizes eventual ordering consistency over strict synchronization
