@@ -342,11 +342,17 @@ Handled via **Bridge layer in Core**.
 
 This architecture:
 
-- separates control plane and data plane  
-- keeps identity centralized  
-- isolates tenant data  
-- enables cross-company communication  
-- supports safe incremental migration  
+- separates control plane and data plane
+- centralizes identity and routing in Core
+- isolates tenant data at the project level
+- uses a derived inbox index for efficient querying
+- applies eventual consistency for scalable state management
+- enables cross-company communication via a controlled bridge layer
+- supports safe, incremental migration from legacy systems
+
+👉 Core insight:
+
+**A global inbox index decouples client experience from underlying multi-project data storage.**
 
 ---
 
@@ -457,33 +463,156 @@ The inbox is a **derived index layer**, not the source of truth.
 
 ---
 
-## 14. Failure Scenarios
+## 14. Unread Count Strategy
 
-### Case 1: Inbox update fails
-- Message still exists in Tenant
-- Inbox may show stale data
-- Can be recovered via re-sync or backfill
+Unread state is maintained in the **Core inbox index** on a per-user, per-channel basis.
 
-### Case 2: Tenant auth fails
-- User cannot access tenant data
-- Core remains accessible
-- Retry token minting
+### Data Model
 
-### Case 3: Partial writes
-- Backend ensures atomic updates where possible
-- Client should rely on server-confirmed state
+Each inbox item may include:
 
-👉 System is designed to degrade gracefully without data loss
+- `channelId`
+- `sourceType`
+- `tenantId`
+- `lastMessageAt`
+- `lastReadAt`
+- `lastReadMessageId`
+- `unreadCount`
+- `updatedAt`
+
+### Design Principles
+
+- Message history in **Tenant / Bridge** is authoritative
+- Unread count in **Core inbox** is derived state
+- Read progress is tracked per user, per channel
+- Backend owns unread count updates for consistency
+
+### Write Flow
+
+When a new message is created:
+
+1. Message is written to Tenant or Bridge storage
+2. Cloud Function triggers on message create
+3. Backend identifies channel members
+4. For each member except sender:
+   - increment `unreadCount`
+   - update `lastMessageAt`
+   - update preview metadata
+5. For sender:
+   - keep `unreadCount = 0`
+   - advance `lastReadAt` to current message
+
+### Read Flow
+
+When a user opens a channel or marks it as read:
+
+1. Client sends read acknowledgement
+2. Backend or trusted write updates inbox item:
+   - `lastReadAt = latestSeenMessageAt`
+   - `lastReadMessageId = latestSeenMessageId`
+   - `unreadCount = 0`
+
+### Why This Model
+
+This avoids:
+
+- scanning message history on every channel list load
+- multi-project unread aggregation on the client
+- inconsistent badge counts across devices
+
+👉 Core inbox provides fast unread retrieval with a single query
 
 ---
 
-## 15. Source of Truth
+## 15. Scaling Limits of Firebase
 
-- Messages → Tenant / Bridge storage (authoritative)
-- Inbox → derived index in Core
-- Membership → Core
+Firebase is well-suited for rapid development of real-time systems, but scaling a multi-tenant chat platform introduces practical limits that must be designed around.
 
-👉 Core does not store primary chat data for tenants
+### What Firebase Handles Well
+
+- managed authentication
+- real-time Firestore sync
+- event-driven backend workflows with Cloud Functions
+- fast iteration with low operational overhead
+
+### Practical Scaling Constraints
+
+#### 1. Write Fan-out
+A single message can trigger multiple downstream updates:
+
+- message write
+- inbox preview update
+- unread count updates for channel members
+- notification workflows
+
+This creates **write amplification**, especially in high-member channels.
+
+#### 2. Cloud Function Latency
+Critical derived state depends on backend triggers.
+
+This means:
+
+- inbox state may be briefly stale
+- unread counts may lag temporarily
+- tenant bootstrap may introduce extra latency
+
+#### 3. Firestore Hotspots
+High activity concentrated on the same documents or narrow document ranges can create contention.
+
+Examples:
+
+- very large shared channels
+- heavily updated metadata documents
+- centralized counters without careful design
+
+#### 4. Cross-Project Operational Complexity
+Multi-tenant isolation improves scalability, but adds complexity:
+
+- tenant config management
+- token minting workflows
+- multi-environment deployment coordination
+- observability across projects
+
+#### 5. Query and Index Growth
+As usage grows, index design becomes more important.
+
+Poor query patterns lead to:
+
+- higher read cost
+- slower queries
+- more operational maintenance
+
+### Why Multi-Tenant Helps
+
+The multi-tenant design improves scale by splitting workloads across separate Firebase projects.
+
+Benefits include:
+
+- tenant-level isolation
+- reduced blast radius
+- cleaner security boundaries
+- easier enterprise onboarding
+- better long-term operational separation
+
+### What Still Needs Care
+
+This architecture does not remove all scaling limits.
+
+Special attention is still required for:
+
+- large channel unread fan-out
+- bridge-layer traffic growth
+- global search and analytics
+- repair/rebuild flows for derived state
+
+### Future Scaling Options
+
+If usage grows significantly, the next steps would include:
+
+- batching or sharding inbox update workflows
+- exporting analytics to dedicated systems
+- adding stronger observability and repair tooling
+- reducing dependency on synchronous derived updates for non-critical paths
 
 ---
 
@@ -492,3 +621,31 @@ The inbox is a **derived index layer**, not the source of truth.
 - Channel list is resolved via single Core query (O(1))
 - Avoids N queries across multiple tenant projects
 - Reduces client complexity and network overhead
+
+---
+
+## 17. Consistency Model
+
+The system follows an **eventual consistency model** between chat data and derived state.
+
+### Model
+
+- Message data in Tenant / Bridge is **authoritative**
+- Inbox and unread counts in Core are **derived**
+- Temporary inconsistencies are acceptable
+
+### Behavior
+
+- Writes to message storage occur first
+- Cloud Functions asynchronously update:
+  - inbox index
+  - unread counts
+  - metadata
+
+### Guarantees
+
+- No message loss
+- Inbox state may lag briefly but converges
+- Derived data can be rebuilt if needed
+
+👉 System prioritizes correctness of primary data over immediate consistency of derived state
