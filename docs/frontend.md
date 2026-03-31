@@ -1,7 +1,5 @@
 # Live Chat — Frontend Architecture
 
----
-
 ## 1. Overview
 
 Live Chat App is a multi-platform (iOS, Android, Web) internal communication application designed to support:
