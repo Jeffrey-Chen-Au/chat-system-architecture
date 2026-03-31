@@ -388,6 +388,8 @@ The system follows an **eventual consistency model** between Tenant data and Cor
 - Inbox can be rebuilt from message history if needed
 - Background jobs or manual triggers can re-sync inbox state
 
+---
+
 ## 14. Failure Scenarios
 
 ### Case 1: Inbox update fails
@@ -406,6 +408,8 @@ The system follows an **eventual consistency model** between Tenant data and Cor
 
 👉 System is designed to degrade gracefully without data loss
 
+---
+
 ## 15. Source of Truth
 
 - Messages → Tenant / Bridge storage (authoritative)
@@ -413,6 +417,8 @@ The system follows an **eventual consistency model** between Tenant data and Cor
 - Membership → Core
 
 👉 Core does not store primary chat data for tenants
+
+---
 
 ## 16. Performance Considerations
 
