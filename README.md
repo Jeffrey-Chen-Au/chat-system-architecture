@@ -25,6 +25,22 @@ The system was originally implemented as a **single Firebase project** and later
 
 ---
 
+## 📱 UI Context (Reference Only)
+
+These screenshots provide context for how the system design maps to real user interactions.
+
+They are included to support the architecture explanation, not as a product showcase.
+
+### Unified Inbox (Core Index)
+
+![Inbox](./assets/gchat-inbox.png)
+
+### Chat Thread (Tenant/Core Routing)
+
+![Thread](./assets/gchat-thread.png)
+
+---
+
 ## 📚 Documentation
 
 - [Architecture](./docs/architecture.md)
