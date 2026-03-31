@@ -1,35 +1,132 @@
 # Multi-Tenant Chat System Architecture
 
-> ⚡ This repository showcases the architecture and design of a real-world, Slack-like chat system, adapted for public sharing.
+> ⚡ A real-world, Slack-like chat system designed with a scalable multi-tenant architecture using Firebase.
 
 ---
 
 ## 🚀 Overview
 
-This project documents the design of a **multi-tenant chat platform** built using:
+This project documents the architecture of a **multi-tenant chat platform** built with:
 
 - React Native (Expo)
 - Firebase (Auth, Firestore, Cloud Functions)
 
-The system was originally implemented as a **single Firebase project** and later evolved into a **multi-tenant architecture** to support multiple companies with proper data isolation and scalability.
+The system originally started as a **single Firebase project** and was later redesigned to support **multiple tenants (companies)** with proper isolation, scalability, and minimal disruption to existing users.
+
+---
+
+## 🧩 Problem
+
+The original single-project architecture introduced several limitations:
+
+- Tight coupling between different companies (no data isolation)
+- Scalability concerns as data volume increased
+- Difficulty supporting multi-company collaboration
+- Risky full migration requirements
+
+The challenge was to evolve into a **multi-tenant system** without:
+
+- breaking existing users  
+- performing large-scale data migration  
+- increasing frontend complexity  
+
+---
+
+## 🏗️ Architecture Overview
+```text
+┌──────────────────────────────┐
+│        Client App            │
+│  (React Native / Web)       │
+└──────────────┬───────────────┘
+               │
+               ▼
+┌──────────────────────────────┐
+│    Core Firebase Project     │
+│                              │
+│  • Auth (Single Identity)    │
+│  • Firestore (Core Data)     │
+│  • Inbox Index               │
+│  • Cloud Functions           │
+│    (Token Minting)           │
+└──────────────┬───────────────┘
+               │
+               ▼
+┌──────────────────────────────┐
+│   Tenant Firebase Projects   │
+│     (Per Company)            │
+│                              │
+│  • Firestore (Messages)      │
+│  • Storage (Media)           │
+│  • RTDB (Presence/Typing)    │
+└──────────────────────────────┘
+```
+
+### Key Idea
+
+- **Core project** = identity + global index  
+- **Tenant projects** = isolated data per company  
+
+---
+
+## 🔄 Data Flow (Tenant Access)
+
+1. User signs in via **Core Firebase Auth**
+2. App reads `/coreMemberships/{uid}`
+3. Determines accessible tenants
+4. Calls Cloud Function: `mintTenantToken(tenantId)`
+5. Receives Firebase custom token
+6. Signs into tenant Firebase project (same UID)
+7. Reads/writes tenant data:
+   - channels
+   - messages
+8. Updates Core inbox index:
+   - `/coreUserInboxes/{uid}`
 
 ---
 
 ## 🧠 Key Highlights
 
-- multi-tenant architecture to support multiple companies while maintaining data isolation and a consistent user experience.
-- Unified inbox indexing system (single-query channel list across tenants, avoids multi-database queries)
-- Scope-based routing across multiple Firebase projects
-- Backend-controlled consistency (Cloud Functions)
-- Incremental migration strategy (no full rewrite)
+- Designed a **multi-tenant architecture using multiple Firebase projects**
+- Built a **Core inbox indexing system** for unified channel listing
+- Implemented **token-based tenant authentication** via Cloud Functions
+- Enabled **cross-tenant messaging support (bridge-ready design)**
+- Migrated from legacy system using **incremental strategy (no full rewrite)**
+
+---
+
+## ⚖️ Key Design Decisions
+
+### Core Inbox Index
+Avoid querying multiple Firebase projects from the client  
+→ Enables **single-query channel list (O(1))**
+
+### Token-Based Tenant Access
+Maintain a unified user identity across projects  
+→ Simplifies authentication and permissions
+
+### Incremental Migration Strategy
+Avoid risky full data migration  
+→ Supports gradual rollout and legacy compatibility
+
+---
+
+## ⚠️ Trade-offs
+
+- Increased backend complexity (multi-project + token system)
+- Slight delay when entering tenant (auth bootstrap)
+- Requires strict consistency between Core and Tenant data
+
+These trade-offs were accepted to achieve:
+
+- scalability  
+- tenant isolation  
+- enterprise readiness  
 
 ---
 
 ## 📱 UI Context (Reference Only)
 
-These screenshots provide context for how the system design maps to real user interactions.
-
-They are included to support the architecture explanation, not as a product showcase.
+These screenshots provide context for how the system maps to real user interactions.
 
 ### Unified Inbox (Core Index)
 
@@ -60,6 +157,15 @@ They are included to support the architecture explanation, not as a product show
 - Firebase Auth
 - Firestore
 - Cloud Functions
+- Realtime Database (presence / typing)
+
+---
+
+## 📊 Context
+
+- Real-time messaging system with typing indicators & presence
+- Supports multi-tenant scaling across multiple Firebase projects
+- Designed for production use and future enterprise onboarding
 
 ---
 
@@ -74,7 +180,8 @@ This repository contains **architecture and design documentation only**.
 
 ## 👤 Author
 
-Mobile engineer with experience building:
+Mobile Engineer specializing in:
+
 - real-time chat systems  
-- multi-tenant architectures  
-- React Native + Firebase apps  
+- multi-tenant architecture  
+- React Native + Firebase ecosystems  
