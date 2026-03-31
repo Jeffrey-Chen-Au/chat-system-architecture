@@ -1,4 +1,4 @@
-# Multi-Tenant Chat System Architecture
+# Multi-Tenant Chat System (Firebase) — Architecture & Design
 
 > ⚡ A real-world, Slack-like chat system designed with a scalable multi-tenant architecture using Firebase.
 
@@ -60,8 +60,37 @@ The challenge was to evolve into a **multi-tenant system** without:
 │  • RTDB (Presence/Typing)    │
 └──────────────────────────────┘
 ```
+## 🔄 Sequence Flow (Login → Tenant Access)
 
+```mermaid
+sequenceDiagram
+    participant User
+    participant App
+    participant CoreAuth
+    participant CoreDB
+    participant CoreFunction
+    participant TenantAuth
+    participant TenantDB
+
+    User->>App: Login
+    App->>CoreAuth: Authenticate
+    CoreAuth-->>App: User session
+
+    App->>CoreDB: Fetch memberships
+    CoreDB-->>App: tenantIds
+
+    App->>CoreFunction: mintTenantToken(tenantId)
+    CoreFunction-->>App: custom token
+
+    App->>TenantAuth: Sign in with custom token
+    TenantAuth-->>App: Tenant session
+
+    App->>TenantDB: Read / write messages
+    App->>CoreDB: Update inbox index
+```
 ### Key Idea
+
+> This design separates identity, indexing, and data storage concerns, enabling horizontal scaling across tenants without coupling client logic to multiple backends.
 
 - **Core project** = identity + global index  
 - **Tenant projects** = isolated data per company  
@@ -86,10 +115,10 @@ The challenge was to evolve into a **multi-tenant system** without:
 
 ## 🧠 Key Highlights
 
-- Designed a **multi-tenant architecture using multiple Firebase projects**
+- Designed a multi-tenant architecture using **isolated Firebase projects with shared identity**
 - Built a **Core inbox indexing system** for unified channel listing
 - Implemented **token-based tenant authentication** via Cloud Functions
-- Enabled **cross-tenant messaging support (bridge-ready design)**
+- Designed a **bridge-ready architecture for cross-tenant communication**
 - Migrated from legacy system using **incremental strategy (no full rewrite)**
 
 ---
@@ -163,9 +192,10 @@ These screenshots provide context for how the system maps to real user interacti
 
 ## 📊 Context
 
-- Real-time messaging system with typing indicators & presence
-- Supports multi-tenant scaling across multiple Firebase projects
-- Designed for production use and future enterprise onboarding
+- Supports real-time messaging with presence and typing indicators
+- Multi-tenant isolation via separate Firebase projects
+- Token-based authentication enables seamless cross-project identity
+- Core inbox index enables O(1) channel list query
 
 ---
 
