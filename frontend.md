@@ -1,10 +1,10 @@
-# GChat — Frontend Architecture
+#Live Chat — Frontend Architecture
 
 ---
 
 ## 1. Overview
 
-GChat is a multi-platform (iOS, Android, Web) internal communication application designed to support:
+Live Chat App is a multi-platform (iOS, Android, Web) internal communication application designed to support:
 
 - real-time messaging
 - multi-tenant communication
