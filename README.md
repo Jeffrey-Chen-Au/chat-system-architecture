@@ -33,7 +33,7 @@ The challenge was to evolve into a **multi-tenant system** without:
 ---
 
 ## 🏗️ Architecture Overview
-
+```text
 ┌──────────────────────────────┐
 │        Client App            │
 │  (React Native / Web)        │
@@ -59,7 +59,7 @@ The challenge was to evolve into a **multi-tenant system** without:
 │  • Storage (Media)           │
 │  • RTDB (Presence/Typing)    │
 └──────────────────────────────┘
-
+```
 ## 🔄 Sequence Flow (Login → Tenant Access)
 
 ```mermaid
