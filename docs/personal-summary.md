@@ -17,23 +17,28 @@ I have designed and delivered two production-level applications:
 
 ### Gaura Travel
 
-- Mobile flight booking app (India ↔ Australia focus)
-- Integrated with existing PHP + MySQL backend
-- Built full booking flow:
-  - search → results → details → booking → passenger → confirmation
-- Implemented Firebase authentication and analytics
-- Managed environment-based builds (EAS)
+- Developed a production flight booking mobile application  
+- Integrated with existing PHP + MySQL backend  
+- Designed complete booking workflow:
+  search → results → booking → confirmation  
+
+- Implemented authentication, analytics, and environment-based builds  
+- Delivered cross-platform app using Expo (iOS + Android)
 
 ---
 
 ### GChat
 
-- Slack-like internal communication platform
-- Supports:
-  - direct messaging
-  - group chats
-  - multi-company (tenant) architecture
-- Built across iOS, Android, and Web
+- Designed and built a Slack-like internal communication platform  
+- Implemented a **multi-tenant architecture using multiple Firebase projects**  
+- Developed a **unified inbox indexing system** to support cross-tenant channel listing  
+- Built real-time messaging with unread synchronization and presence  
+
+Platforms:
+
+- iOS (React Native)
+- Android (React Native)
+- Web (Firebase SDK)
 
 ---
 
@@ -117,50 +122,42 @@ I have designed and delivered two production-level applications:
 
 ## 5. Challenges Faced
 
-- Managing multi-project Firebase initialization
-- Designing consistent unread logic across tenants
-- Migrating from single-project to multi-tenant without downtime
-- Keeping frontend simple while backend handles complexity
+- Designing a multi-tenant system without breaking existing users  
+- Maintaining consistent unread state across multiple Firebase projects  
+- Handling derived state (inbox, unread) with eventual consistency  
+- Coordinating frontend simplicity with backend-driven correctness 
 
 ---
 
 ## 6. What I Would Improve
 
-- Add monitoring and alerting (SLOs, logging)
-- Improve cost awareness and scaling strategy
-- Introduce clearer state management on frontend
-- Enhance error handling for tenant switching
+- Introduce observability (logging, tracing, alerting) for backend workflows  
+- Optimize write fan-out for large channels  
+- Improve tenant bootstrapping latency on frontend  
+- Add repair tooling for derived state (inbox backfill, unread re-sync)  
 
 ---
 
-## 7. Engineering Level
+## 7. Engineering Profile
 
-I currently operate at a **strong mid-level engineer** level:
+I design and build **end-to-end systems** across mobile and backend, with a focus on:
 
-- capable of designing real systems  
-- able to implement end-to-end features  
-- understands architecture and trade-offs  
+- multi-tenant architecture  
+- real-time systems  
+- frontend–backend integration  
 
-Next growth focus:
+I have experience:
 
-- scalability and performance at larger scale  
-- production reliability and observability  
-- deeper system design reasoning  
+- evolving systems without full rewrites  
+- designing derived state models (inbox, unread)  
+- balancing client simplicity with backend consistency  
+
+👉 Currently expanding into deeper areas of scalability, reliability, and distributed system design
 
 ---
 
-## 8. Summary
+## 8. Core Strength
 
-I have built:
-
-- production mobile apps  
-- a multi-tenant real-time system  
-- cross-platform architecture  
-
-My strength lies in:
-
-- system design thinking  
-- frontend + backend integration  
-- building scalable foundations  
-
-👉 Currently progressing toward senior-level engineering
+- Designing multi-tenant systems with clear separation of concerns  
+- Building real-time applications with derived state models  
+- Integrating frontend and backend into a cohesive system 
