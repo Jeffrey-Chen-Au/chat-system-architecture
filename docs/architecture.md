@@ -280,13 +280,15 @@ Without this:
 
 ## 9. Backend Responsibilities
 
-Core backend handles:
+Core backend acts as the **consistency and security layer**:
 
-- tenant discovery  
-- token minting  
-- inbox indexing  
-- unread updates  
-- migration tooling  
+- validates tenant membership
+- mints secure tenant tokens
+- updates Core inbox index on message events
+- maintains unread counts
+- enforces cross-tenant communication rules
+
+👉 Backend owns all critical state transitions
 
 ---
 
@@ -363,6 +365,57 @@ This architecture:
 
 ---
 
-👉 Key idea:
+## 13. Consistency Model
 
-**Inbox controls routing**
+The system follows an **eventual consistency model** between Tenant data and Core inbox index.
+
+### Write Flow
+
+1. Message is written to Tenant (or Core for bridge)
+2. Cloud Function triggers:
+   - updates Core inbox item
+   - updates lastMessage / timestamps
+   - updates unread counts
+
+### Guarantees
+
+- Tenant data is the **source of truth**
+- Core inbox is a **derived index**
+- Temporary inconsistencies are tolerated
+
+### Failure Handling
+
+- Inbox can be rebuilt from message history if needed
+- Background jobs or manual triggers can re-sync inbox state
+
+## 14. Failure Scenarios
+
+### Case 1: Inbox update fails
+- Message still exists in Tenant
+- Inbox may show stale data
+- Can be recovered via re-sync or backfill
+
+### Case 2: Tenant auth fails
+- User cannot access tenant data
+- Core remains accessible
+- Retry token minting
+
+### Case 3: Partial writes
+- Backend ensures atomic updates where possible
+- Client should rely on server-confirmed state
+
+👉 System is designed to degrade gracefully without data loss
+
+## 15. Source of Truth
+
+- Messages → Tenant / Bridge storage (authoritative)
+- Inbox → derived index in Core
+- Membership → Core
+
+👉 Core does not store primary chat data for tenants
+
+## 16. Performance Considerations
+
+- Channel list is resolved via single Core query (O(1))
+- Avoids N queries across multiple tenant projects
+- Reduces client complexity and network overhead
