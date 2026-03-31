@@ -36,7 +36,7 @@ The challenge was to evolve into a **multi-tenant system** without:
 ```text
 ┌──────────────────────────────┐
 │        Client App            │
-│  (React Native / Web)       │
+│  (React Native / Web)        │
 └──────────────┬───────────────┘
                │
                ▼
