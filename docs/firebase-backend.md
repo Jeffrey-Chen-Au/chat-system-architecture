@@ -1,7 +1,5 @@
 # Live Chat — Firebase Backend Architecture
 
----
-
 ## 1. Overview
 
 This document describes the Firebase backend architecture used by the Live Chat app.
