@@ -33,11 +33,11 @@ They are included to support the architecture explanation, not as a product show
 
 ### Unified Inbox (Core Index)
 
-![Inbox](./assets/gchat-inbox.png)
+<img src="./assets/gchat-inbox.png" width="300"/>
 
 ### Chat Thread (Tenant/Core Routing)
 
-![Thread](./assets/gchat-thread.png)
+<img src="./assets/gchat-thread.png" width="300"/>
 
 ---
 
